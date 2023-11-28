@@ -1,0 +1,31 @@
+Name: "FULLADDER";
+
+Inputs:
+    a,
+    b,
+    carryIn
+;
+
+Outputs:
+    sum,
+    carryOut
+;
+
+Parts:
+    halfAdder1->HALFADDER,
+    halfAdder2->HALFADDER,
+    or->OR
+;
+
+Wires:
+    input.a -> halfAdder1.a,
+    input.b -> halfAdder1.b,
+    halfAdder1.sum -> halfAdder2.a,
+    input.carryIn -> halfAdder2.b,
+    
+    halfAdder2.sum -> output.sum,
+    halfAdder1.carry -> or.in1,
+    halfAdder2.carry -> or.in2,
+    
+    or.out -> output.carryOut
+;

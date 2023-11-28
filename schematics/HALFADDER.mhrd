@@ -1,0 +1,27 @@
+Name: "HALFADDER";
+
+Inputs:
+    a,
+    b
+;
+
+Outputs:
+    sum,
+    carry
+;
+
+Parts:
+    xor -> XOR,
+    and -> AND
+;
+
+Wires:
+    input.a->xor.in1,
+    input.b->xor.in2,
+
+    input.a->and.in1,
+    input.b->and.in2,
+
+    xor.out->output.sum,
+    and.out->output.carry
+;

@@ -1,0 +1,33 @@
+Name: "MUX2-1";
+
+Inputs:
+    in1,
+    in2,
+    sel
+;
+
+Outputs:
+    out
+;
+
+Parts:
+    not->NOT,
+    and1->AND,
+    and2->AND,
+    or->OR
+;
+
+Wires:
+    input.sel -> not.in,
+
+    input.in1 -> and1.in1,
+    not.out -> and1.in2,
+
+    input.in2 -> and2.in1,
+    input.sel -> and2.in2,
+
+    and1.out -> or.in1,
+    and2.out -> or.in2,
+
+    or.out -> output.out
+;
