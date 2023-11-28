@@ -1,0 +1,25 @@
+Name: "AND";
+
+Inputs:
+    in1,
+    in2
+;
+
+Outputs:
+    out
+;
+
+Parts:
+    nand1->NAND,
+    nand2->NAND
+;
+
+Wires:
+    input.in1 -> nand1.in1,
+    input.in2 -> nand1.in2,
+
+    nand1.out -> nand2.in1,
+    nand1.out -> nand2.in2,
+
+    nand2.out -> output.out
+;

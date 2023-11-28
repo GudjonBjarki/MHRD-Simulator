@@ -1,0 +1,20 @@
+Name: "NOT";
+
+Inputs:
+    in
+;
+
+Outputs:
+    out
+;
+
+Parts:
+    nand->NAND
+;
+
+Wires:
+    input.in->nand.in1,
+    input.in->nand.in2,
+    nand.out->output.out
+;
+

@@ -1,0 +1,26 @@
+Name: "OR";
+
+Inputs:
+    in1,
+    in2
+;
+
+Outputs:
+    out
+;
+
+Parts:
+    not1 -> NOT,
+    not2 -> NOT,
+    nand -> NAND
+;
+
+Wires:
+    input.in1 -> not1.in,
+    input.in2 -> not2.in,
+
+    not1.out -> nand.in1,
+    not2.out -> nand.in2,
+
+    nand.out -> output.out
+;
