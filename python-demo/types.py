@@ -34,7 +34,7 @@ class InputPinId(PinId):
     """
     pass
 
-class InputPinId(PinId):
+class OutputPinId(PinId):
     """
     An identifier used to define an output pin on a schematic.
     A single output pin can have multiple or no connections from it.
