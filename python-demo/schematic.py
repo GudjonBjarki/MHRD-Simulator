@@ -2,6 +2,7 @@ from schematic_types import *
 
 from dataclasses import dataclass
 
+
 @dataclass
 class Schematic:
     # A unique identifier of the schematic.
@@ -17,15 +18,33 @@ class Schematic:
     # The connections between input / output pins and the child components.
     connections: set[Connection]
 
+    def get_input_connections_for_component(
+        self, component_id: SchematicComponentId | SchematicOutput
+    ) -> list[Connection]:
+        return [
+            connection
+            for connection in self.connections
+            if connection.destination.component == component_id
+        ]
+
+    def get_output_connections_for_component(
+        self, component_id: SchematicComponentId | SchematicInput
+    ) -> list[Connection]:
+        return [
+            connection
+            for connection in self.connections
+            if connection.source.component == component_id
+        ]
+
 
 # Hardcoded definition of a nand schematic.
 # This schematic does not implement any connections since the logic is hardcoded.
 nand_schematic = Schematic(
-    schematic_id = SchematicId("NAND"),
-    input_pins = set([PinId("in1"), PinId("in2")]),
-    output_pins= set([PinId("out")]),
-    components = {},
-    connections = set([])
+    schematic_id=SchematicId("NAND"),
+    input_pins=set([PinId("in1"), PinId("in2")]),
+    output_pins=set([PinId("out")]),
+    components={},
+    connections=set([]),
 )
 
 
@@ -34,7 +53,7 @@ def build_schematic(
     input_pins: set[PinId],
     output_pins: set[PinId],
     components: dict[SchematicComponentId, SchematicId],
-    connections: set[Connection]
+    connections: set[Connection],
 ):
     """
     Construct a new schematic.
@@ -48,12 +67,11 @@ def build_schematic(
     """
 
     schematic = Schematic(
-        schematic_id = schematic_id,
-        input_pins = input_pins,
-        output_pins = output_pins,
-        components = components,
-        connections = connections,
+        schematic_id=schematic_id,
+        input_pins=input_pins,
+        output_pins=output_pins,
+        components=components,
+        connections=connections,
     )
 
     return schematic
-

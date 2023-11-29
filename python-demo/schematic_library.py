@@ -55,7 +55,7 @@ class SchematicLibrary:
         }
 
         # Resolve the input signals for the schematic from the input_signals dict.
-        circuit_input_connections = get_output_connections_for_component(schematic, SchematicInput())
+        circuit_input_connections = schematic.get_output_connections_for_component(SchematicInput())
         for connection in circuit_input_connections:
             connection_signal_state[connection] = input_signals[connection.source.pin]
 
@@ -66,12 +66,12 @@ class SchematicLibrary:
             for component_id, component_schematic in components.items():
 
                 # If all the output signals for the component are resolved, skip it.
-                component_output_connections = get_output_connections_for_component(schematic, component_id)
+                component_output_connections = schematic.get_output_connections_for_component(component_id)
                 if are_connections_resolved(schematic, component_output_connections, connection_signal_state):
                     continue
 
                 # If all the input signals for the component are resolved we're able to simulate it.
-                component_input_connections = get_input_connections_for_component(schematic, component_id)
+                component_input_connections = schematic.get_input_connections_for_component(component_id)
                 if are_connections_resolved(schematic, component_input_connections, connection_signal_state):
 
                     # Parse the signals so they can be passed to the simulation function
@@ -88,7 +88,7 @@ class SchematicLibrary:
                         connection_signal_state[connection] = component_simulation_output_signals[InputPinId(connection.source.pin)]
 
             # If all the output signals for the schematic are resolved we're done.
-            circuit_output_signals = get_input_connections_for_component(schematic, SchematicOutput())
+            circuit_output_signals = schematic.get_input_connections_for_component(SchematicOutput())
             if are_connections_resolved(schematic, circuit_output_signals, connection_signal_state):
                 return {
                     InputPinId(connection.destination.pin): connection_signal_state[connection] # type: ignore
@@ -130,22 +130,6 @@ def get_schematic_components(schematic: Schematic, library: SchematicLibrary) ->
         components[component_id] = component_schematic
 
     return components
-
-def get_input_connections_for_component(schematic: Schematic, component_id: SchematicComponentId | SchematicInput | SchematicOutput) -> list[Connection]:
-    results = [
-        connection
-        for connection in schematic.connections
-        if connection.destination.component == component_id
-    ]
-    return results
-
-def get_output_connections_for_component(schematic: Schematic, component_id: SchematicComponentId | SchematicInput | SchematicOutput) -> list[Connection]:
-    results = [
-        connection
-        for connection in schematic.connections
-        if connection.source.component == component_id
-    ]
-    return results
 
 def are_connections_resolved(schematic: Schematic, connections: list[Connection],  signal_state: dict[Connection, bool | None]) -> bool:
     return all (
