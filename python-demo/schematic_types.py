@@ -1,6 +1,7 @@
 """
 Collection of simple wrapper types.
 """
+from dataclasses import dataclass
 
 class SchematicId(str):
     """
@@ -17,7 +18,6 @@ class SchematicComponentId(str):
         The component has the SchematicComponentId('nand1') and the SchematicId('NAND')
     """
     pass
-
 
 class PinId(str):
     """
@@ -45,15 +45,23 @@ class SchematicInput:
     """
     @TODO: Document
     """
-    pass
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, SchematicInput)
+    
+    def __hash__(self) -> int:
+        return hash("SchematicInput")
 
 class SchematicOutput:
     """
     @TODO: Document
     """
-    pass
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, SchematicOutput)
+    
+    def __hash__(self) -> int:
+        return hash("SchematicOutput")
 
-
+@dataclass
 class InputAttachmentPoint:
     """
     A point on a schematic where a connection can be created to.
@@ -61,6 +69,10 @@ class InputAttachmentPoint:
     component: SchematicComponentId | SchematicOutput
     pin: InputPinId
 
+    def __hash__(self) -> int:
+        return hash((self.component, self.pin))
+
+@dataclass
 class OutputAttachmentPoint:
     """
     A point on a schematic where a connection can be created from.
@@ -68,6 +80,10 @@ class OutputAttachmentPoint:
     component: SchematicComponentId | SchematicInput
     pin: OutputPinId
 
+    def __hash__(self) -> int:
+        return hash((self.component, self.pin))
+
+@dataclass
 class Connection:
     """
     A connection between and OutputAttachmentPoint and an InputAttachmentPoint.
@@ -76,4 +92,5 @@ class Connection:
     source: OutputAttachmentPoint
     destination: InputAttachmentPoint
 
-
+    def __hash__(self) -> int:
+        return hash((self.source, self.destination))
