@@ -66,7 +66,7 @@ class OutputAttachmentPoint:
     A point on a schematic where a connection can be created from.
     """
     component: SchematicComponentId | SchematicInput
-    pin: OutputPin
+    pin: OutputPinId
 
 class Connection:
     """
