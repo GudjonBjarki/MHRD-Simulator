@@ -1,221 +1,154 @@
 from typing import Callable
 
+from schematic import Schematic, build_schematic
 
-class TextParser:
-    content: str
-    index: int
 
-    def __init__(self, content: str):
-        self.content = content
-        self.index = 0
+def filter_string(input_string: str, filter_function: Callable[[str], bool]) -> str:
+    output_list = filter(filter_function, input_string)
+    output_string = "".join(output_list)
+    return output_string
 
-    def peek(self) -> str | None:
-        try:
-            return self.content[self.index]
-        except IndexError:
-            return None
 
-    def peekn(self, n: int) -> str:
-        return self.content[self.index : self.index + n]
-
-    def getch(self) -> str:
-        char = self.content[self.index]
-        self.index += 1
-        return char
-
-    def getchn(self, n: int) -> str:
-        chars = self.content[self.index : self.index + n]
-        self.index += n
-        return chars
-
-    def parse_whitespace(self) -> str:
-        """
-        Parse whitespace characters or comments starting with "//" until the end of the line.
-        """
-        whitespace = ""
-
-        while True:
-            if self.peek().isspace():
-                whitespace += self.getch()
-
-            elif self.peekn(2) == "//":
-                while self.peek() != "\n":
-                    self.getch()
-
-            else:
-                break
-        
-        return whitespace
-    
-    def parse_span(self, span_lambda: Callable[[str], bool]) -> str:
-        """
-        Parse a span of characters until a character is found that the span_lambda returns false for.
-        """
-        span = ""
-
-        while True:
-            next_char = self.peek()
-            if next_char is None:
-                break
-
-            if not span_lambda(next_char):
-                break
-
-            span += self.getch()
-
-        return span
-    
-    def parse_literal(self, literal: str) -> str | None:
-        """
-        Parse a literal string.
-        """
-        if self.peekn(len(literal)) == literal:
-            return self.getchn(len(literal))
-
-        else:
-            return None
-    
-    def goto_literal(self, literal: str) -> bool:
-        """
-        Go to the first occurance of a literal string.
-        If the string is found the index of the parser will be set to the start.
-        True is returned if the string is found and the index is set, False otherwise.
-        """
-        index = self.content.find(literal)
-        if index == -1:
-            return False
-        
-        self.index = index
-        return True
-
-def find_section(section_name: str, parser: TextParser) -> str:
+def string_after_literal(input_string: str, literal: str) -> str | None:
     """
-    Find a section from a parser containing a MHRD file.
-    A secion in a MHRD file is defined as starting with "<sectionName>:" and it's contents being any text that follow up to a semicolon.
+    Returns the string after the first occurence of the literal.
+    If the literal is not found, returns None.
     """
-    section_header = section_name + ":"
+    literal_index = input_string.find(literal)
+    if literal_index == -1:
+        return None
 
-    if not parser.goto_literal(section_header):
-        raise Exception(f"{section_name} section not found in MHRD")
-    
-    parser.parse_literal(section_header)
-    
-    section_content = parser.parse_span(lambda c : c != ";")
-    return section_content
+    index_after_literal = literal_index + len(literal)
+    string_after_literal = input_string[index_after_literal:]
+    return string_after_literal
 
-def parse_name(name_section_content: str) -> str:
-    parser = TextParser(name_section_content)
 
-    parser.parse_whitespace()
-    opening_quote = parser.parse_literal("\"")
-    if opening_quote is None:
-        raise Exception("Opening quote not found in name section.")
-    
-    name = parser.parse_span(lambda c : c != "\"")
+def string_before_literal(input_string: str, literal: str) -> str | None:
+    """
+    Returns the string before the first occurence of the literal.
+    If the literal is not found, returns None.
+    """
+    literal_index = input_string.find(literal)
+    if literal_index == -1:
+        return None
 
-    closing_quote = parser.parse_literal("\"")
-    if closing_quote is None:
-        raise Exception("Closing quote not found in name section.")
-    
+    string_before_literal = input_string[0:literal_index]
+    return string_before_literal
+
+
+def string_between_literals(
+    input_string: str, start_literal: str, stop_literal: str
+) -> str | None:
+    """
+    Returns the string between the first occurence of the start literal and the first occurence of the stop literal.
+    If either literal is not found, returns None.
+    """
+    string_after_start = string_after_literal(input_string, start_literal)
+    if string_after_start is None:
+        return None
+
+    string_before_stop = string_before_literal(string_after_start, stop_literal)
+    if string_before_stop is None:
+        return None
+
+    return string_before_stop
+
+
+def parse_name_section(name_section: str) -> str:
+    name = string_between_literals(name_section, '"', '"')
+    if name is None:
+        raise Exception("Name was not found in name section.")
     return name
 
-def parse_inputs(inputs_section_content: str) -> list[str]:
-    inputs = inputs_section_content.split(",")
-    clean_inputs = [i.lstrip().strip() for i in inputs]
-    return clean_inputs
 
-def parse_outputs(outputs_section_content: str) -> list[str]:
-    outputs = outputs_section_content.split(",")
-    clean_outputs = [i.lstrip().strip() for i in outputs]
-    return clean_outputs
+def parse_list(list_string: str) -> list[str]:
+    list_entries = list_string.split(",")
+    return list_entries
 
-def parse_components(components_section_content: str) -> list[tuple[str, str]]:
 
-    component_lines = components_section_content.split(",")
-    components: list[tuple[str, str]]= []
+parse_input_section = parse_list
+parse_output_section = parse_list
 
-    for line_num, component_line  in enumerate(component_lines):
-        line_parser = TextParser(component_line)
-        line_parser.parse_whitespace()
 
-        component_name = line_parser.parse_span(lambda c : c.isalnum())
-        line_parser.parse_whitespace()
+def parse_components(components_section: str) -> list[tuple[str, str]]:
+    components: list[tuple[str, str]] = []
+    component_definitions = components_section.split(",")
+    for component in component_definitions:
+        try:
+            component_name, component_type = component.split("->")
 
-        arrow = line_parser.parse_literal("->")
-        if arrow is None:
-            raise Exception(f"No arrow found in component definition {line_num}. \"{repr(component_line)}\"")
-        
-        line_parser.parse_whitespace()
-        component_schematic = line_parser.parse_span(lambda c: c.isalnum())
+        except ValueError:
+            raise Exception("Invalid component definition: " + component)
 
-        components.append((component_name, component_schematic)) 
+        components.append((component_name, component_type))
 
     return components
 
-def parse_wires(wires_section_conent: str) -> list[tuple[tuple[str, str], tuple[str, str]]]:
-    wire_lines = wires_section_conent.split(",")
-    wires: list[tuple[tuple[str, str], tuple[str, str]]] = []
 
-    isalnum_lambda: Callable[[str], bool] = lambda c : c.isalnum()
+def parse_connections(
+    connections_section: str,
+) -> list[tuple[tuple[str, str], tuple[str, str]]]:
+    connections: list[tuple[tuple[str, str], tuple[str, str]]] = []
+    connection_definitions = connections_section.split(",")
 
-    for line_num, wire_line in enumerate(wire_lines):
-        line_parser = TextParser(wire_line)
-        line_parser.parse_whitespace()
+    for connection_definition in connection_definitions:
+        try:
+            source, destination = connection_definition.split("->")
+            source_name, source_pin = source.split(".")
+            destination_name, destination_pin = destination.split(".")
 
-        output_component_name = line_parser.parse_span(isalnum_lambda)
-        output_component_dot = line_parser.parse_literal(".")
-        if output_component_dot is None:
-            raise Exception(f"No dot found in output of wire definition {line_num}. {repr(wire_line)}")
-            
-        output_component_schematic = line_parser.parse_span(isalnum_lambda)
-        line_parser.parse_whitespace()
+        except ValueError:
+            raise Exception("Invalid connection definition: " + connection_definition)
 
-        arrow = line_parser.parse_literal("->")
-        if arrow is None:
-            raise Exception(f"No arrow found in wire definition {line_num}. {repr(wire_line)}")
-        line_parser.parse_whitespace()
-
-        input_component_name = line_parser.parse_span(isalnum_lambda)
-        input_component_dot = line_parser.parse_literal(".")
-        if input_component_dot is None:
-            raise Exception(f"No dot found in input of wire definition {line_num}. {repr(wire_line)}")
-        input_component_schematic = line_parser.parse_span(isalnum_lambda)
-
-        wires.append(
-            ((output_component_name, output_component_schematic), (input_component_name, input_component_schematic))
+        connections.append(
+            ((source_name, source_pin), (destination_name, destination_pin))
         )
 
-    return wires
+    return connections
 
-def parse_mhrd(mhrd_content: str):
-    parser = TextParser(mhrd_content)
 
-    # Parse name section.
-    name_section_content = find_section("Name", parser)
-    schematic_name = parse_name(name_section_content)
-    print(schematic_name)
+def parse_mhrd_schematic(mhrd_string: str) -> Schematic:
+    clean_text = filter_string(mhrd_string, (lambda c: not c.isspace()))
 
-    # Parse the inputs section.
-    inputs_section_content = find_section("Inputs", parser)
-    schematic_input_pins = parse_inputs(inputs_section_content)
-    print(schematic_input_pins)
-    
-    # Parse the outputs section.
-    outputs_section_content = find_section("Outputs", parser)
-    schematic_output_pins = parse_outputs(outputs_section_content)
-    print(schematic_output_pins)
+    # parse name
+    name_section = string_between_literals(clean_text, "Name:", ";")
+    if name_section is None:
+        raise Exception("Name section not found!")
 
-    # Parse the parts section. 
-    parts_section_content = find_section("Parts", parser)
-    schematic_components = parse_components(parts_section_content)
-    print(schematic_components)
-    
-    # Parse the Wires section.
-    wires_section_content = find_section("Wires", parser)
-    schematic_wires = parse_wires(wires_section_content)
-    print(schematic_wires)
+    schematic_name = parse_name_section(name_section)
 
-with open("../schematics/DEMUX-2-1.mhrd", "r") as f:
-    content = f.read()
+    # Parse inputs
+    input_section = string_between_literals(clean_text, "Inputs:", ";")
+    if input_section is None:
+        raise Exception("Inputs section not found!")
 
-parse_mhrd(content)
+    schematic_input_pins = parse_input_section(input_section)
+
+    # Parse outputs
+    output_section = string_between_literals(clean_text, "Outputs:", ";")
+    if output_section is None:
+        raise Exception("Outputs section not found!")
+
+    schematic_output_pins = parse_output_section(output_section)
+
+    # Parse components.
+    component_section = string_between_literals(clean_text, "Parts:", ";")
+    if component_section is None:
+        raise Exception("Components section not found!")
+
+    schematic_components = parse_components(component_section)
+
+    # Parse connections.
+    connection_section = string_between_literals(clean_text, "Wires:", ";")
+    if connection_section is None:
+        raise Exception("Connections section not found!")
+
+    schematic_connections = parse_connections(connection_section)
+
+    return build_schematic(
+        schematic_name,
+        schematic_input_pins,
+        schematic_output_pins,
+        schematic_components,
+        schematic_connections,
+    )
