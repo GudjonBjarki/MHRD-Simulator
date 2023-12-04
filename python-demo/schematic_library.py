@@ -1,6 +1,8 @@
 from schematic_types import *
 from schematic import Schematic, nand_schematic
 
+import itertools
+
 
 class SchematicLibrary:
     schematics: list[Schematic]
@@ -115,6 +117,26 @@ class SchematicLibrary:
                     InputPinId(connection.destination.pin): connection_signal_state[connection]  # type: ignore
                     for connection in circuit_output_signals
                 }
+
+    def get_scehematic_truth_table(
+        self, schematic: Schematic
+    ) -> list[tuple[dict[PinId, bool], dict[InputPinId, bool]]]:
+        input_pins = schematic.input_pins
+
+        input_combinations = list(
+            itertools.product([False, True], repeat=len(input_pins))
+        )
+        pin_combinations: list[dict[PinId, bool]] = [
+            dict(zip(input_pins, combination)) for combination in input_combinations
+        ]
+
+        output_results: list[tuple[dict[PinId, bool], dict[InputPinId, bool]]] = []
+        for pin_combination in pin_combinations:
+            output_results.append(
+                (pin_combination, self.simulate_schematic(schematic, pin_combination))
+            )
+
+        return output_results
 
 
 def nand_logic(input_signals: dict[OutputPinId, bool]):
